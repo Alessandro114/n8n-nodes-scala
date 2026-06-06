@@ -1,0 +1,57 @@
+{
+  "name": "n8n-nodes-scala",
+  "version": "0.1.0",
+  "description": "n8n community node for S.C.A.L.A. AI OS — CRM, Score API (244M+ companies), WhatsApp AI, and more",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "scala",
+    "crm",
+    "company-data",
+    "whatsapp",
+    "ai",
+    "score-api",
+    "business-intelligence"
+  ],
+  "license": "MIT",
+  "homepage": "https://get-scala.com",
+  "author": {
+    "name": "S.C.A.L.A. AI OS",
+    "email": "ale@get-scala.com",
+    "url": "https://get-scala.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Alessandro114/n8n-nodes-scala.git"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "lint": "tsc --noEmit"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/ScalaScoreApi.credentials.js",
+      "dist/credentials/ScalaCrmApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Scala/ScalaScore.node.js",
+      "dist/nodes/Scala/ScalaCrm.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "gulp": "^4.0.2",
+    "n8n-workflow": "^1.0.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
+}
