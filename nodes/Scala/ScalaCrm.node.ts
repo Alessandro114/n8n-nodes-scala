@@ -3,7 +3,7 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeConnectionType,
+
 } from 'n8n-workflow';
 
 export class ScalaCrm implements INodeType {
@@ -18,8 +18,8 @@ export class ScalaCrm implements INodeType {
 		defaults: {
 			name: 'SCALA CRM',
 		},
-		inputs: [NodeConnectionType.Main],
-		outputs: [NodeConnectionType.Main],
+		inputs: ['main' as const],
+		outputs: ['main' as const],
 		credentials: [
 			{
 				name: 'scalaCrmApi',
