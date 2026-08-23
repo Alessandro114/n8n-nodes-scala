@@ -1,5 +1,8 @@
-node_modules/
-dist/
-*.js
 !gulpfile.js
+*.js
 .DS_Store
+coverage/
+dist/
+dist/
+node_modules/
+node_modules/
