@@ -9,9 +9,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        # Node 22 e non 20 per una ragione che riguarda solo lo sviluppo:
+        # n8n-workflow, che qui serve unicamente per i TIPI, tira dentro
+        # isolated-vm, un modulo nativo che vuole un V8 recente. Su Node 20.20
+        # non compila ("PostTaskImpl marked final, but is not virtual": quel
+        # V8 non ha ancora SourceLocation).
+        #
+        # Non ha effetto su chi USA il pacchetto: a runtime questo nodo non ha
+        # dipendenze native e n8n-workflow arriva da n8n come peerDependency.
+        with: { node-version: '22' }
       # npm ci e non npm install: un package-lock disallineato deve fallire
-      # qui, non sul portatile di chi installa il pacchetto da npm.
+      # qui, non sul portatile di chi clona il repo.
       - run: npm ci
       - run: npm run build
       - run: npm test
