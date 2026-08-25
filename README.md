@@ -1,5 +1,6 @@
 # n8n-nodes-scala
 
+[![CI](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml/badge.svg)](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml) [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml)
 ![n8n community node](https://img.shields.io/badge/n8n-community%20node-ff6d5a)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Companies](https://img.shields.io/badge/companies-244M%2B-green)
