@@ -1,15 +1,13 @@
 {
   "name": "n8n-nodes-scala",
-  "version": "0.1.0",
-  "description": "n8n community node for S.C.A.L.A. AI OS — CRM, Score API (244M+ companies), WhatsApp AI, and more",
+  "version": "0.2.0",
+  "description": "n8n community node for S.C.A.L.A. Score API v1 (company search and profiles; filed financials for FR, NO, LT, EE, LV, CO) plus a CRM node",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "scala",
     "crm",
     "company-data",
-    "whatsapp",
-    "ai",
     "score-api",
     "business-intelligence"
   ],
@@ -26,13 +24,14 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').copyFileSync('nodes/Scala/scala.svg','dist/nodes/Scala/scala.svg')\"",
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build",
     "lint": "tsc --noEmit"
   },
   "files": [
-    "dist"
+    "dist",
+    "examples"
   ],
   "n8n": {
     "n8nNodesApiVersion": 1,

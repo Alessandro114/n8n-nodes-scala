@@ -1,0 +1,74 @@
+{
+  "name": "SCALA Score - company search with licence check",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "query": "Total",
+        "country": "FR",
+        "limit": 5
+      },
+      "name": "SCALA Score: Search",
+      "type": "n8n-nodes-scala.scalaScore",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "scalaScoreApi": { "id": "", "name": "S.C.A.L.A. Score API" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "withheld",
+              "leftValue": "={{ $json.financials_withheld }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "empty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Financials available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Has financials",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {},
+      "name": "Name only (licence not confirmed)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "SCALA Score: Search", "type": "main", "index": 0 }]] },
+    "SCALA Score: Search": { "main": [[{ "node": "Financials available?", "type": "main", "index": 0 }]] },
+    "Financials available?": {
+      "main": [
+        [{ "node": "Has financials", "type": "main", "index": 0 }],
+        [{ "node": "Name only (licence not confirmed)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "tags": []
+}

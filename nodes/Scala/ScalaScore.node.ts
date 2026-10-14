@@ -1,10 +1,22 @@
 import {
 	IExecuteFunctions,
+	IDataObject,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-
+	NodeApiError,
 } from 'n8n-workflow';
+
+const DEFAULT_BASE_URL = 'https://score.get-scala.com';
+
+// Accepts the host ("https://score.get-scala.com") or a full v1 URL. The pre-0.2.0 default
+// (app.get-scala.com) never served /api/v1, so saved credentials still holding it are mapped
+// to the Score host instead of failing with 404.
+export function resolveBaseUrl(raw: unknown): string {
+	let url = String(raw || DEFAULT_BASE_URL).trim().replace(/\/+$/, '').replace(/\/api\/v1$/, '');
+	if (/^https?:\/\/app\.get-scala\.com$/i.test(url)) url = DEFAULT_BASE_URL;
+	return url;
+}
 
 export class ScalaScore implements INodeType {
 	description: INodeTypeDescription = {
@@ -14,7 +26,8 @@ export class ScalaScore implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Search 244M+ companies worldwide — financial data, risk scores, industry classification',
+		description:
+			'Company search and profiles from the S.C.A.L.A. Score API v1. Filed financials only for FR, NO, LT, EE, LV, CO.',
 		defaults: {
 			name: 'SCALA Score',
 		},
@@ -36,37 +49,25 @@ export class ScalaScore implements INodeType {
 					{
 						name: 'Search Companies',
 						value: 'search',
-						description: 'Search companies by name, VAT, or keyword',
+						description: 'Search by name (prefix match) or tax/VAT id. 1 credit per call.',
 						action: 'Search companies',
 					},
 					{
 						name: 'Lookup Company',
 						value: 'lookup',
-						description: 'Get detailed company data by ID or VAT number',
+						description: 'Full profile for a company id returned by search. 1 credit per call.',
 						action: 'Lookup company',
-					},
-					{
-						name: 'Generate Report',
-						value: 'report',
-						description: 'Generate a full company health report (PDF)',
-						action: 'Generate report',
 					},
 					{
 						name: 'Get Countries',
 						value: 'countries',
-						description: 'List all available countries with company counts',
+						description: 'Countries available in the database. 1 credit per call.',
 						action: 'Get countries',
-					},
-					{
-						name: 'Get Stats',
-						value: 'stats',
-						description: 'Get database statistics (total companies, countries, etc.)',
-						action: 'Get stats',
 					},
 					{
 						name: 'Check Credits',
 						value: 'credits',
-						description: 'Check remaining API credits',
+						description: 'Plan, credits used and remaining for this key. Free.',
 						action: 'Check credits',
 					},
 				],
@@ -78,70 +79,42 @@ export class ScalaScore implements INodeType {
 				name: 'query',
 				type: 'string',
 				default: '',
-				required: true,
-				displayOptions: {
-					show: {
-						operation: ['search'],
-					},
-				},
-				description: 'Company name, VAT number, or keyword to search',
+				displayOptions: { show: { operation: ['search'] } },
+				description: 'Company name (prefix match) or VAT number such as IT00159560366. Leave empty if you use Tax ID.',
+			},
+			{
+				displayName: 'Tax ID',
+				name: 'taxId',
+				type: 'string',
+				default: '',
+				displayOptions: { show: { operation: ['search'] } },
+				description: 'Exact tax/VAT id. The country prefix (e.g. IT) selects the country if Country is empty.',
 			},
 			{
 				displayName: 'Country',
 				name: 'country',
 				type: 'string',
 				default: '',
-				displayOptions: {
-					show: {
-						operation: ['search'],
-					},
-				},
-				description: 'ISO 2-letter country code (e.g. IT, DE, FR, US, GB)',
+				displayOptions: { show: { operation: ['search'] } },
+				description: 'ISO 2-letter country code (e.g. IT, DE, FR, GB). Empty = all countries.',
 			},
 			{
 				displayName: 'Limit',
 				name: 'limit',
 				type: 'number',
 				default: 10,
-				typeOptions: {
-					minValue: 1,
-					maxValue: 100,
-				},
-				displayOptions: {
-					show: {
-						operation: ['search'],
-					},
-				},
-				description: 'Maximum number of results to return',
+				typeOptions: { minValue: 1, maxValue: 100 },
+				displayOptions: { show: { operation: ['search'] } },
+				description: 'Max number of results to return',
 			},
 			{
-				displayName: 'NACE Code',
-				name: 'nace',
-				type: 'string',
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['search'],
-					},
-				},
-				description: 'Filter by NACE industry code (e.g. 56.10 for restaurants)',
-			},
-			{
-				displayName: 'Status',
-				name: 'status',
-				type: 'options',
-				options: [
-					{ name: 'All', value: '' },
-					{ name: 'Active', value: 'active' },
-					{ name: 'Inactive', value: 'inactive' },
-				],
-				default: '',
-				displayOptions: {
-					show: {
-						operation: ['search'],
-					},
-				},
-				description: 'Filter by company status',
+				displayName: 'Filed Accounts Only',
+				name: 'filedOnly',
+				type: 'boolean',
+				default: false,
+				displayOptions: { show: { operation: ['search'] } },
+				description:
+					'Whether to return only companies with revenue_type "reported" (filed accounts). Paid credit packs only; free keys get HTTP 403.',
 			},
 			// Lookup parameters
 			{
@@ -149,42 +122,9 @@ export class ScalaScore implements INodeType {
 				name: 'companyId',
 				type: 'string',
 				default: '',
-				displayOptions: {
-					show: {
-						operation: ['lookup'],
-					},
-				},
-				description: 'Company ID or VAT number',
-			},
-			// Report parameters
-			{
-				displayName: 'Company ID',
-				name: 'reportCompanyId',
-				type: 'string',
-				default: '',
 				required: true,
-				displayOptions: {
-					show: {
-						operation: ['report'],
-					},
-				},
-				description: 'Company ID to generate report for',
-			},
-			{
-				displayName: 'Report Type',
-				name: 'reportType',
-				type: 'options',
-				options: [
-					{ name: 'Basic (5 credits)', value: 'basic' },
-					{ name: 'Pro (10 credits)', value: 'pro' },
-					{ name: 'Enterprise (20 credits)', value: 'enterprise' },
-				],
-				default: 'basic',
-				displayOptions: {
-					show: {
-						operation: ['report'],
-					},
-				},
+				displayOptions: { show: { operation: ['lookup'] } },
+				description: 'The id field of a search result',
 			},
 		],
 	};
@@ -193,84 +133,86 @@ export class ScalaScore implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const credentials = await this.getCredentials('scalaScoreApi');
-		const baseUrl = (credentials.baseUrl as string).replace(/\/$/, '');
+		const baseUrl = resolveBaseUrl(credentials.baseUrl);
 
 		for (let i = 0; i < items.length; i++) {
-			const operation = this.getNodeParameter('operation', i) as string;
-			let endpoint = '';
-			let method = 'GET';
-			let body: Record<string, unknown> | undefined;
-			const qs: Record<string, string> = {};
+			try {
+				const operation = this.getNodeParameter('operation', i) as string;
+				let path = '';
+				const qs: IDataObject = {};
 
-			switch (operation) {
-				case 'search': {
-					endpoint = '/api/score/search';
-					qs.q = this.getNodeParameter('query', i) as string;
-					const country = this.getNodeParameter('country', i, '') as string;
-					if (country) qs.country = country;
-					const limit = this.getNodeParameter('limit', i, 10) as number;
-					qs.limit = String(limit);
-					const nace = this.getNodeParameter('nace', i, '') as string;
-					if (nace) qs.nace = nace;
-					const status = this.getNodeParameter('status', i, '') as string;
-					if (status) qs.status = status;
-					break;
+				switch (operation) {
+					case 'search': {
+						path = '/api/v1/search';
+						const query = (this.getNodeParameter('query', i, '') as string).trim();
+						const taxId = (this.getNodeParameter('taxId', i, '') as string).trim();
+						if (!query && !taxId) {
+							throw new Error('Set Query or Tax ID');
+						}
+						if (taxId) qs.tax_id = taxId;
+						else qs.q = query;
+						const country = (this.getNodeParameter('country', i, '') as string).trim();
+						if (country) qs.country = country;
+						qs.limit = this.getNodeParameter('limit', i, 10) as number;
+						if (this.getNodeParameter('filedOnly', i, false) as boolean) qs.filed_only = '1';
+						break;
+					}
+					case 'lookup': {
+						const id = (this.getNodeParameter('companyId', i) as string).trim();
+						if (!id) throw new Error('Company ID is required');
+						path = `/api/v1/company/${encodeURIComponent(id)}`;
+						break;
+					}
+					case 'countries':
+						path = '/api/v1/countries';
+						break;
+					case 'credits':
+						path = '/api/v1/usage';
+						break;
+					default:
+						throw new Error(`Unknown operation: ${operation}`);
 				}
-				case 'lookup': {
-					endpoint = '/api/score/lookup';
-					qs.id = this.getNodeParameter('companyId', i) as string;
-					break;
-				}
-				case 'report': {
-					endpoint = '/api/score/report';
-					method = 'POST';
-					body = {
-						company_id: this.getNodeParameter('reportCompanyId', i) as string,
-						type: this.getNodeParameter('reportType', i) as string,
-					};
-					break;
-				}
-				case 'countries': {
-					endpoint = '/api/score/countries';
-					break;
-				}
-				case 'stats': {
-					endpoint = '/api/score/stats';
-					break;
-				}
-				case 'credits': {
-					endpoint = '/api/score/credits';
-					break;
-				}
-			}
 
-			const queryString = Object.entries(qs).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
-			const url = `${baseUrl}${endpoint}${queryString ? '?' + queryString : ''}`;
+				const response = (await this.helpers.httpRequest({
+					method: 'GET',
+					url: `${baseUrl}${path}`,
+					qs,
+					headers: { 'X-API-Key': credentials.apiKey as string },
+					json: true,
+				})) as IDataObject;
 
-			const options: Record<string, unknown> = {
-				method,
-				url,
-				headers: {
-					'X-API-Key': credentials.apiKey as string,
-					'Content-Type': 'application/json',
-				},
-				json: true,
-			};
+				const push = (json: IDataObject) =>
+					returnData.push({ json, pairedItem: { item: i } });
 
-			if (body) {
-				options.body = body;
-			}
-
-			const response = await this.helpers.request(options);
-			const responseData = typeof response === 'string' ? JSON.parse(response) : response;
-
-			if (Array.isArray(responseData.results || responseData.companies || responseData.data)) {
-				const arr = responseData.results || responseData.companies || responseData.data;
-				for (const item of arr) {
-					returnData.push({ json: item });
+				if (operation === 'search') {
+					// Keep licence attribution with every record (required when redistributing the data).
+					const shared: IDataObject = {};
+					if (response.data_licences) shared.data_licences = response.data_licences;
+					if (response.attribution) shared.attribution = response.attribution;
+					const results = (response.results as IDataObject[]) || [];
+					if (results.length === 0) continue;
+					for (const r of results) push({ ...r, ...shared });
+				} else if (operation === 'lookup') {
+					const { company, ...rest } = response;
+					push({ ...(company as IDataObject), ...rest });
+				} else if (operation === 'countries') {
+					const countries = (response.countries as IDataObject[]) || [];
+					for (const c of countries) push(c);
+				} else {
+					push(response);
 				}
-			} else {
-				returnData.push({ json: responseData });
+			} catch (error) {
+				if (this.continueOnFail()) {
+					returnData.push({
+						json: { error: (error as Error).message },
+						pairedItem: { item: i },
+					});
+					continue;
+				}
+				if ((error as { httpCode?: string }).httpCode || (error as { response?: unknown }).response) {
+					throw new NodeApiError(this.getNode(), error as never, { itemIndex: i });
+				}
+				throw error;
 			}
 		}
 

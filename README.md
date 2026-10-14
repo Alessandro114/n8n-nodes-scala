@@ -2,52 +2,55 @@
 
 ![n8n community node](https://img.shields.io/badge/n8n-community%20node-ff6d5a)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Companies](https://img.shields.io/badge/companies-244M%2B-green)
 
-**n8n community node for [S.C.A.L.A. AI OS](https://get-scala.com)** — the enterprise AI operating system for B2B automation.
-
-This node lets you connect your n8n workflows to:
-
-- **Score API** — Search 244M+ companies across 40+ countries. Financial data, risk scores, industry codes, revenue estimates.
-- **CRM** — Full contact lifecycle: create, update, pipeline, kanban, email, timeline.
-- **Data Tables** — Generic CRUD on any S.C.A.L.A. table (contacts, tickets, assets, invoices, orders…).
-- **Webhooks** — Real-time events: new contact, WhatsApp message, order created, and more.
+**n8n community nodes for [S.C.A.L.A.](https://get-scala.com)**: company data from the Score API v1, plus a CRM node for the S.C.A.L.A. platform. No runtime dependencies.
 
 ## Installation
 
-### Community Nodes (recommended)
-
-1. Go to **Settings > Community Nodes** in your n8n instance
-2. Click **Install a community node**
-3. Enter `n8n-nodes-scala`
-4. Click **Install**
-
-### Manual
+**Settings > Community Nodes > Install**, enter `n8n-nodes-scala`. Or manually:
 
 ```bash
 cd ~/.n8n/nodes
 npm install n8n-nodes-scala
-# Restart n8n
+# restart n8n
 ```
 
-## Nodes
+## S.C.A.L.A. Score node
 
-### S.C.A.L.A. Score
+Calls `https://score.get-scala.com/api/v1/*` with your key in the `X-API-Key` header.
 
-Search and enrich company data from 244M+ businesses worldwide.
+| Operation | Endpoint | Credits |
+|-----------|----------|---------|
+| Search Companies (name prefix, or tax/VAT id; country, limit, filed-only) | `GET /api/v1/search` | 1 |
+| Lookup Company (by `id` from search) | `GET /api/v1/company/{id}` | 1 |
+| Get Countries | `GET /api/v1/countries` | 1 |
+| Check Credits | `GET /api/v1/usage` | 0 |
 
-| Operation | Description | Credits |
-|-----------|-------------|---------|
-| Search Companies | Search by name, VAT, keyword. Filter by country, NACE code, status | 1 |
-| Lookup Company | Get full company details by ID or VAT number | 1 |
-| Generate Report | Full company health report (Basic/Pro/Enterprise) | 5/10/20 |
-| Get Countries | List available countries with company counts | 0 |
-| Get Stats | Database statistics | 0 |
-| Check Credits | Your remaining API credits | 0 |
+Search returns one item per company. Each item keeps the `data_licences` (and `attribution`, where present) block: keep it if you redistribute the data.
 
-### S.C.A.L.A. CRM
+### What financial data you get (read this)
 
-Manage your entire customer lifecycle from n8n.
+Financial fields (`revenue`, `employees`, `net_income`, `score`, `grade`, ...) are returned only for **FR, NO, LT, EE, LV and CO**, where the source licence is confirmed. For all other countries the company record is returned without financials and carries `financials_withheld: "licence_not_confirmed"`. The database holds 766,606 filed accounts (balance sheets) across those 6 countries.
+
+Check `revenue_type` on each record: `reported` = filed accounts, `estimated` = model estimate. Search results with `revenue_type: reported` can be requested with **Filed Accounts Only** (paid credit packs; free keys get HTTP 403).
+
+### Credentials
+
+1. Get a free key (50 calls/month, no card): https://score.get-scala.com/api/free-key
+2. In n8n create **S.C.A.L.A. Score API**, paste the key.
+3. **Base URL** defaults to `https://score.get-scala.com` (host only, no `/api/v1`). Change it only for a self-hosted or proxied instance. Credentials saved with the old default `https://app.get-scala.com` are mapped to the Score host automatically.
+
+Paid packs are one-time credits (500 = EUR 15, 2,000 = EUR 39), no subscription: https://score.get-scala.com/builders
+
+### Changes in 0.2.0
+
+- Moved from the non-existent `/api/score/*` routes to the live `/api/v1/*` API.
+- Operation values `search`, `lookup`, `countries`, `credits` are unchanged, so saved workflows keep working. `Generate Report` and `Get Stats` are removed (no v1 equivalent). The NACE and Status filters are removed (v1 does not support them); the new **Tax ID** and **Filed Accounts Only** inputs replace them.
+- Lookup now returns the company object itself plus `data_licences` and `credits_remaining`.
+
+## S.C.A.L.A. CRM node
+
+Unchanged in 0.2.0. It talks to a S.C.A.L.A. platform account (**Settings > API** in your dashboard, base URL in the credential), not to the Score API.
 
 | Resource | Operations |
 |----------|-----------|
@@ -57,67 +60,96 @@ Manage your entire customer lifecycle from n8n.
 | Data Table | Generic CRUD on any table |
 | Webhook | Create, Delete, Test, List |
 
-## Credentials
+## Example workflow (import as template)
 
-### Score API
+Copy the JSON below (also in [`examples/score-company-search.json`](examples/score-company-search.json)), then in n8n use **Workflow > Import from URL / File** or paste it on the canvas, and select your Score credential. It searches French companies and splits results by whether financials are available.
 
-1. Sign up at [app.get-scala.com](https://app.get-scala.com)
-2. Go to **Score > API**
-3. Generate an API key
-4. Paste it in the n8n credential
-
-### CRM API
-
-1. Go to **Settings > API** in your S.C.A.L.A. dashboard
-2. Generate an API token
-3. Paste it in the n8n credential
-
-## Example Workflows
-
-### Lead enrichment pipeline
-
+```json
+{
+  "name": "SCALA Score - company search with licence check",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "query": "Total",
+        "country": "FR",
+        "limit": 5
+      },
+      "name": "SCALA Score: Search",
+      "type": "n8n-nodes-scala.scalaScore",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "scalaScoreApi": { "id": "", "name": "S.C.A.L.A. Score API" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "withheld",
+              "leftValue": "={{ $json.financials_withheld }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "empty", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Financials available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Has financials",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {},
+      "name": "Name only (licence not confirmed)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "SCALA Score: Search", "type": "main", "index": 0 }]] },
+    "SCALA Score: Search": { "main": [[{ "node": "Financials available?", "type": "main", "index": 0 }]] },
+    "Financials available?": {
+      "main": [
+        [{ "node": "Has financials", "type": "main", "index": 0 }],
+        [{ "node": "Name only (licence not confirmed)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "tags": []
+}
 ```
-Webhook trigger → SCALA Score: Search → Filter → SCALA CRM: Create Contact → Slack notification
-```
-
-Incoming lead from your website → automatically enrich with company data from 244M+ database → add to CRM with financial score → notify your sales team.
-
-### WhatsApp order automation
-
-```
-SCALA Webhook (order.created) → SCALA CRM: Update Contact → Google Sheets → Email notification
-```
-
-When a customer places an order via WhatsApp AI (SARA), automatically update CRM, log to spreadsheet, and send confirmation.
-
-### Company monitoring
-
-```
-Schedule trigger → SCALA Score: Search (by NACE) → SCALA Score: Lookup → Filter (revenue change) → Email
-```
-
-Daily check on competitors or target companies — get alerts when financial data changes.
-
-## Pricing
-
-| Plan | Price | Credits/mo |
-|------|-------|-----------|
-| Starter | €19/mo | 500 |
-| Growth | €49/mo | 5,000 |
-| Enterprise | €149/mo | 50,000 |
-
-Self-hosted n8n + S.C.A.L.A. Score API = unlimited automation at a fraction of the cost of Dun & Bradstreet, Bureau van Dijk, or ZoomInfo.
 
 ## Links
 
-- [S.C.A.L.A. AI OS](https://get-scala.com)
-- [Score API Docs](https://app.get-scala.com/api/docs/ui)
+- [S.C.A.L.A.](https://get-scala.com)
+- [Score API](https://score.get-scala.com/api/docs) · [sources and licences](https://score.get-scala.com/sources)
 - [GitHub](https://github.com/Alessandro114/n8n-nodes-scala)
 
 ## License
 
-MIT
-
+MIT (this package). Data licences are listed per country in the `data_licences` field of every response.
 
 ---
 
@@ -131,7 +163,7 @@ Part of the **S.C.A.L.A.** open-source ecosystem:
 | [LandIQ](https://github.com/Alessandro114/landiq) | Autonomous real estate feasibility agent |
 | [scala-sites](https://github.com/Alessandro114/scala-sites) | 100 vertical website templates (Next.js, MIT) |
 | [scala-agent-definitions](https://github.com/Alessandro114/scala-agent-definitions) | 79 AI tool definitions for 20 verticals |
-| [scala-mcp-server](https://github.com/Alessandro114/scala-mcp-server) | MCP server for Claude/ChatGPT — 250M+ companies |
+| [scala-mcp-server](https://github.com/Alessandro114/scala-mcp-server) | MCP server for Claude/ChatGPT — company data |
 | [Score SDKs](https://github.com/Alessandro114/scala-score-js) | Company data — [JS](https://npmjs.com/package/scala-score) · [Python](https://pypi.org/project/scala-score) · [Go](https://github.com/Alessandro114/company-lookup-go) · [Rust](https://github.com/Alessandro114/score-rust) · [Deno](https://github.com/Alessandro114/scala-score-deno) |
 | [enrich-companies](https://github.com/Alessandro114/enrich-companies) | CSV enrichment CLI — [npm](https://npmjs.com/package/enrich-companies) · [pip](https://pypi.org/project/enrich-companies) |
 | [n8n node](https://github.com/Alessandro114/n8n-nodes-scala) | n8n community node for company data |
