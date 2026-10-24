@@ -14,6 +14,8 @@ This node lets you connect your n8n workflows to:
 - **Data Tables** — Generic CRUD on any S.C.A.L.A. table (contacts, tickets, assets, invoices, orders…).
 - **Webhooks** — Real-time events: new contact, WhatsApp message, order created, and more.
 
+Score API documentation and keys: https://score.get-scala.com/api/?utm_source=github&utm_medium=readme&utm_campaign=n8n
+
 ## Installation
 
 ### Community Nodes (recommended)
