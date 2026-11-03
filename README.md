@@ -3,13 +3,13 @@
 [![CI](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml/badge.svg)](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml) [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/Alessandro114/n8n-nodes-scala/actions/workflows/ci.yml)
 ![n8n community node](https://img.shields.io/badge/n8n-community%20node-ff6d5a)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Companies](https://img.shields.io/badge/companies-244M%2B-green)
+![Companies](https://img.shields.io/badge/companies-249M%2B-green)
 
 **n8n community node for [S.C.A.L.A. AI OS](https://get-scala.com)** — the enterprise AI operating system for B2B automation.
 
 This node lets you connect your n8n workflows to:
 
-- **Score API** — Search 244M+ companies across 40+ countries. Financial data, risk scores, industry codes, revenue estimates.
+- **Score API** — Search 249M+ companies in 264 countries. Financial data, risk scores, industry codes, revenue estimates.
 - **CRM** — Full contact lifecycle: create, update, pipeline, kanban, email, timeline.
 - **Data Tables** — Generic CRUD on any S.C.A.L.A. table (contacts, tickets, assets, invoices, orders…).
 - **Webhooks** — Real-time events: new contact, WhatsApp message, order created, and more.
@@ -37,7 +37,7 @@ npm install n8n-nodes-scala
 
 ### S.C.A.L.A. Score
 
-Search and enrich company data from 244M+ businesses worldwide.
+Search and enrich company data from 249M+ businesses worldwide.
 
 | Operation | Description | Credits |
 |-----------|-------------|---------|
@@ -83,7 +83,7 @@ Manage your entire customer lifecycle from n8n.
 Webhook trigger → SCALA Score: Search → Filter → SCALA CRM: Create Contact → Slack notification
 ```
 
-Incoming lead from your website → automatically enrich with company data from 244M+ database → add to CRM with financial score → notify your sales team.
+Incoming lead from your website → automatically enrich with company data from 249M+ database → add to CRM with financial score → notify your sales team.
 
 ### WhatsApp order automation
 
@@ -134,8 +134,11 @@ Part of the **S.C.A.L.A.** open-source ecosystem:
 | [LandIQ](https://github.com/Alessandro114/landiq) | Autonomous real estate feasibility agent |
 | [scala-sites](https://github.com/Alessandro114/scala-sites) | 100 vertical website templates (Next.js, MIT) |
 | [scala-agent-definitions](https://github.com/Alessandro114/scala-agent-definitions) | 79 AI tool definitions for 20 verticals |
-| [scala-mcp-server](https://github.com/Alessandro114/scala-mcp-server) | MCP server for Claude/ChatGPT — 250M+ companies |
+| [scala-mcp-server](https://github.com/Alessandro114/scala-mcp-server) | MCP server for Claude/ChatGPT — 249M+ companies |
 | [Score SDKs](https://github.com/Alessandro114/scala-score-js) | Company data — [JS](https://npmjs.com/package/scala-score) · [Python](https://pypi.org/project/scala-score) · [Go](https://github.com/Alessandro114/company-lookup-go) · [Rust](https://github.com/Alessandro114/score-rust) · [Deno](https://github.com/Alessandro114/scala-score-deno) |
 | [enrich-companies](https://github.com/Alessandro114/enrich-companies) | CSV enrichment CLI — [npm](https://npmjs.com/package/enrich-companies) · [pip](https://pypi.org/project/enrich-companies) |
 | [n8n node](https://github.com/Alessandro114/n8n-nodes-scala) | n8n community node for company data |
 
+## Data coverage
+
+S.C.A.L.A. Score holds about 249 million company records from public registries and open data in 264 countries (figure shown on [score.get-scala.com](https://score.get-scala.com), checked 03/11/2026). Financial fields such as revenue, employees or score are present only where the source publishes them, which is a minority of the records; always check each field before relying on it.
