@@ -9,7 +9,7 @@
 
 This node lets you connect your n8n workflows to:
 
-- **Score API** — Search 249M+ companies in 264 countries. Financial data, risk scores, industry codes, revenue estimates.
+- **Score API** — Search 249M+ company records in 264 countries. Industry codes for all; financial data, risk scores and revenue estimates only where available.
 - **CRM** — Full contact lifecycle: create, update, pipeline, kanban, email, timeline.
 - **Data Tables** — Generic CRUD on any S.C.A.L.A. table (contacts, tickets, assets, invoices, orders…).
 - **Webhooks** — Real-time events: new contact, WhatsApp message, order created, and more.
@@ -83,7 +83,7 @@ Manage your entire customer lifecycle from n8n.
 Webhook trigger → SCALA Score: Search → Filter → SCALA CRM: Create Contact → Slack notification
 ```
 
-Incoming lead from your website → automatically enrich with company data from 249M+ database → add to CRM with financial score → notify your sales team.
+Incoming lead from your website → automatically enrich with company data from 249M+ database → add to CRM with financial score (where available) → notify your sales team.
 
 ### WhatsApp order automation
 
@@ -141,4 +141,4 @@ Part of the **S.C.A.L.A.** open-source ecosystem:
 
 ## Data coverage
 
-S.C.A.L.A. Score holds about 249 million company records from public registries and open data in 264 countries (figure shown on [score.get-scala.com](https://score.get-scala.com), checked 03/11/2026). Financial fields such as revenue, employees or score are present only where the source publishes them, which is a minority of the records; always check each field before relying on it.
+S.C.A.L.A. Score holds about 249 million company records from public registries and open data in 264 countries (home page of [score.get-scala.com](https://score.get-scala.com): "Data from official registries in 264 countries · 249,353,619 companies", checked 03/11/2026). Not all records have financial data, and coverage varies by country: revenue, employees and score are shown only where the source publishes them. Always check each field before relying on it.
